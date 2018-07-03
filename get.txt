@@ -1,0 +1,109 @@
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include<arduino.h>
+#include <ESP8266HTTPClient.h>
+#include<string.h>
+
+
+#define ACCEPT_TYPE "text/csv"  
+
+
+const char* ssid = "D-Link_DIR-615";
+const char* password = "cadoptiot@123";
+
+
+const char TWPlatformBaseURL[] = "http://192.168.100.12:80"; //ThingworxIP:Port
+const char appKey[] = "xxxxxxxxxxxxxxxxxxxxxxxxxxx";//Your Appkey
+
+
+WiFiClient client;
+char e[6];
+
+void setup() 
+{
+  Serial.begin(115200);
+  Serial.println();
+  Serial.print("connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) 
+{
+    delay(500);
+    Serial.print(".");
+ }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());;
+
+  
+
+}
+
+void loop()
+{       
+        
+        int dec=0;
+        HTTPClient http;
+        int httpCode = -1;
+        String fullRequestURL = String(TWPlatformBaseURL) + "/Thingworx/Things/Capacity/Properties/prop?appKey=" + String(appKey); //Change Thingname and Properties name as yours
+        http.begin(fullRequestURL);
+        http.addHeader("Accept",ACCEPT_TYPE,false,false);
+        
+        httpCode = http.GET(); //CODE will be 200, print it if you want to check it.
+        
+        if(httpCode > 0) //if it is More than 200
+        {
+             
+             String responses= http.getString(); //Where ACCEPT_TYPE is "text/csv" So that will in in format :-   "Propertyname"value.  For example  "prop"1100. Where it is a String,read each character in String
+             
+	    /*******Though we need only value of a property,Soo put those in a character*******/
+	    //where response is "prop"1100, so we need only 1100
+	     char a=responses[8];  //1
+             char b=responses[9];  //1
+             char c=responses[10]; //0
+             char d=responses[11]; //0
+             int  v=d;   //put last value in a Integer ,so it can convert it to ASCII. We are doing it because the value will be either 4 digits or 3 digits. i.e "prop"1100 or "prop"110 
+            
+               if (v>46)// acii value of dot(.),,, if there is only 3 digits in value ,i.e "prop"110, Now responses[11] is a Dot(.). So now we are checking if there is not Dot(.) i.e if we got 4 digits of Value, then go to this loop 
+                   {
+                   char e[6];
+                   sprintf(e,"%c%c%c%c",a,b,c,d);
+                   int i,j,len;
+                   len=strlen(e);
+		   /***converting string 1100 to Decimal ****/
+                   for(i=0;i<len;i++)
+                   {
+                    dec=dec*10+(e[i]-'0');
+                    }
+                   Serial.println(dec);
+                   
+                   
+                   }
+               else  //if there is only 3 digits in a value 
+                   {
+                   char e[6];
+                   sprintf(e,"%c%c%c",a,b,c);
+                   int i,j,len;
+                   len=strlen(e);
+                   for(i=0;i<len;i++)
+                   {
+                    dec=dec*10+(e[i]-'0');
+                    }
+                   Serial.println(dec);
+                   
+                   }
+         }
+       
+        
+        else 
+        
+        {
+            Serial.printf("[httpGetPropertry] failed, error: %s\n\n", http.errorToString(httpCode).c_str());
+        }
+        http.end();
+        delay(1000);
+        
+}   
+
+ 
